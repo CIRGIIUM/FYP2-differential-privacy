@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Choose Deidentification Method</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            background-color: #fff;
+            padding: 20px;
+            margin: auto;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .field-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        label, select, input[type="text"] {
+            margin-right: 10px;
+        }
+        .epsilon-box {
+            display: none;
+        }
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        .data {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data, .data th, .data td {
+            border: 1px solid black;
+        }
+        .data th, .data td {
+            padding: 5px;
+            text-align: left;
+        }
+        .info {
+            position: relative;
+            display: inline-block;
+            cursor: help; /* Indicates clickable item for users */
+        }
+
+        .info .tooltiptext {
+            visibility: hidden;
+            width: 200px; /* Increased width to prevent wrapping */
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 150%; /* Adjusted for better positioning */
+            left: 50%;
+            margin-left: -100px; /* Adjusted to align with the width */
+            white-space: nowrap; /* Prevents text from wrapping */
+            opacity: 0;
+            transition: visibility 0s, opacity 0.5s ease-in-out;
+        }
+        .info:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .accordion {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+        .active, .accordion:hover {
+            background-color: #ccc;
+        }
+        .panel {
+            padding: 0 18px;
+            background-color: white;
+            display: none;
+            overflow: hidden;
+        }
+        .bin-box{
+            display: none;
+        }
+    </style>
+    <script>
+        function toggleEpsilon(event, colName) {
+            var method = event.target.value;
+            var epsilonBox = document.getElementById(colName + '_epsilon_box');
+            var binBox = document.getElementById(colName + '_bin_box');
+
+            epsilonBox.style.display = 'none'; // Hide by default
+            binBox.style.display = 'none';     // Hide by default
+
+            if (method === 'laplace') {
+                epsilonBox.style.display = 'block';
+            } else if (method === 'generalization') {
+                binBox.style.display = 'block';
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Select De-Identification Methods</h1>
+        <form action="/results" method="post" enctype="multipart/form-data">
+            {% for col in columns %}
+                <div class="field-group">
+                    <label for="{{ col }}">{{ col }}</label>
+                    <select name="{{ col }}" onchange="toggleEpsilon(event, '{{ col }}')">
+                        <option value="none">None</option>
+                        <option value="laplace">Laplace Mechanism</option>
+                        <option value="generalization">Generalization</option>
+                        <option value="pca">PCA</option>
+                        <option value="hashing">Hashing</option>
+                    </select>
+                    <div id="{{ col }}_epsilon_box" class="epsilon-box">
+                        <label for="{{ col }}_epsilon">Epsilon:</label>
+                        <input type="text" name="{{ col }}_epsilon" value="1">
+                        <span class="info">
+                            <span class="tooltiptext">Epsilon is a parameter that determines the amount of noise added for privacy. Lower epsilon means more noise and higher privacy.</span>
+                            &#9432; <!-- Unicode character for information symbol -->
+                        </span>
+                    </div>
+                    <!-- Bin interval selection for generalization, visible only when Generalization is selected -->
+                    <div id="{{ col }}_bin_box" class="bin-box" style="display: none;">
+                        <label for="{{ col }}_bins">Number of Bins:</label>
+                        <select name="{{ col }}_bins">
+                            <option value="5">5 bins (e.g., 0-5, 5-10, ...)</option>
+                            <option value="10">10 bins (e.g., 0-10, 10-20, ...)</option>
+                            <!-- Add more options as necessary -->
+                        </select>
+                    </div>
+                </div>
+            {% endfor %}
+            <br>
+            <input type="submit" value="De-Identify">
+        </form>
+        
+
+        <!-- Dataset preview section -->
+        <h2>Dataset Preview</h2>
+        <div>
+            {{ preview_html|safe }}
+        </div>
+        <!-- FAQ section -->
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+    
+            <button class="accordion">What is Generalization?</button>
+            <div class="panel">
+                <p>Generalization is a technique to protect privacy by reducing the granularity of the data. It involves grouping together values that are similar, effectively reducing the detail in exchange for increased anonymity.</p>
+            </div>
+    
+            <button class="accordion">What is PCA?</button>
+            <div class="panel">
+                <p>PCA, or Principal Component Analysis, is a statistical technique that transforms the data into principal components which are orthogonal to each other, reducing the number of variables and retaining the variance in the data to the maximum extent possible.</p>
+            </div>
+    
+            <button class="accordion">What is the Laplace Mechanism?</button>
+            <div class="panel">
+                <p>The Laplace Mechanism adds noise drawn from the Laplace distribution to the data. This technique is often used in differential privacy to make it difficult to infer individual information from aggregated data.</p>
+            </div>    
+    </div>
+
+    <script>
+        var acc = document.getElementsByClassName("accordion");
+        var i;
+
+        for (i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var panel = this.nextElementSibling;
+                if (panel.style.display === "block") {
+                    panel.style.display = "none";
+                } else {
+                    panel.style.display = "block";
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
